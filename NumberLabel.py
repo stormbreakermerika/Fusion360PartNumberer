@@ -6,18 +6,43 @@ handlers = []
 app = adsk.core.Application.get()
 ui  = app.userInterface
 
+class NumbererCommandExecuteHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        return
+
+class NumbererCommandDestroyHandler(adsk.core.CommandEventHandler):
+    def __init__(self):
+        super().__init__()
+    def notify(self, args):
+        try:
+            # when the command is done, terminate the script
+            # this will release all globals which will remove all event handlers
+            adsk.terminate()
+        except:
+            if ui:
+                ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
+
 class NumbererCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self):
         super().__init__()
     def notify(self, args):
         try:
-            ui.messageBox('created called')
-
             cmd = args.command
             cmd.isRepeatable = False
 
+            onExecute = NumbererCommandExecuteHandler()
+            cmd.execute.add(onExecute)
+
+            onDestroy = NumbererCommandDestroyHandler()
+            cmd.destroy.add(onDestroy)
+
+            handlers.append(onExecute)
+            handlers.append(onDestroy)
+
             inputs = cmd.commandInputs
-            inputs.addStringValueInput('start', 'Start', 1)
+            inputs.addStringValueInput('start', 'Start', str(1))
         except:
             if ui:
                 ui.messageBox('Failed: \n{}'.format(traceback.format_exc()))  
@@ -42,13 +67,11 @@ def run(context):
         cmdDef = commandDefinitions.addButtonDefinition('Numberer', 
                                                 'Number Parts',
                                                 'idk')
-    ui.messageBox(str(type(cmdDef)))  
     onCommandCreated = NumbererCommandCreatedHandler()
     ui.messageBox(str(type(onCommandCreated)))  
     try:
         cmdDef.commandCreated.add(onCommandCreated)
     except Exception as e:
-        ui.messageBox('hi')
         ui.messageBox(str(e))
 
     handlers.append(onCommandCreated)
