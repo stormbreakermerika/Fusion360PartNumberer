@@ -6,11 +6,23 @@ handlers = []
 app = adsk.core.Application.get()
 ui  = app.userInterface
 
-class NumbererCommandExecuteHandler(adsk.core.CommandCreatedEventHandler):
+class NumbererCommandExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
         super().__init__()
     def notify(self, args):
+        try:
+            unitsMgr = app.activeProduct.unitsManager
+            command = args.firingEvent.sender
+            inputs = command.commandInputs
+            selectedFaceInput = inputs.itemById('face')
+            selectedFace = selectedFaceInput.selection(0).entity
+
+        except:
+            if ui:
+                ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
+    def extrudeNumbering(self, face):
         return
+
 
 class NumbererCommandDestroyHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -43,6 +55,8 @@ class NumbererCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
 
             inputs = cmd.commandInputs
             inputs.addStringValueInput('start', 'Start', str(1))
+            faceSelectioninput = inputs.addSelectionInput('face', 'Labeled Face', 'Face To Label')
+            faceSelectioninput.addSelectionFilter('Faces')
         except:
             if ui:
                 ui.messageBox('Failed: \n{}'.format(traceback.format_exc()))  
@@ -68,7 +82,7 @@ def run(context):
                                                 'Number Parts',
                                                 'idk')
     onCommandCreated = NumbererCommandCreatedHandler()
-    ui.messageBox(str(type(onCommandCreated)))  
+     
     try:
         cmdDef.commandCreated.add(onCommandCreated)
     except Exception as e:
